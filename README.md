@@ -281,7 +281,7 @@ go fmt ./... && go vet ./... && go test -race ./...
 
 The tests start real agents, clients and processes on loopback (the agent binds `127.0.0.2` so it can share port numbers with test servers on `127.0.0.1`). They need neither network access nor Docker.
 
-Tagging `vX.Y.Z` builds `linux/amd64` and `linux/arm64` binaries with GitHub Actions and publishes them with a `SHA256SUMS` file to GitHub Releases.
+There is no CI/CD: run the checks above before merging. Releases (`linux/amd64` and `linux/arm64` binaries plus `SHA256SUMS` on GitHub Releases) are built and published by hand, see [docs/release.md](docs/release.md).
 
 ## License
 
