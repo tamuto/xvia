@@ -1,0 +1,45 @@
+# xvia example: two development servers inside containers, reachable from the
+# host through a single Unix socket.
+#
+#   * no "ports:"                       - nothing is published by Docker
+#   * no /var/run/docker.sock           - xvia never talks to the Docker API
+#   * no "privileged" / "network_mode: host"
+#
+# Start the agent on the host first, then the containers:
+#
+#   xvia agent &
+#   docker compose up --build
+#   curl http://127.0.0.1:8000   # python http.server in "web"
+#   curl http://127.0.0.1:8001   # Go dev server in "api"
+#
+# XVIA_SOCKET_DIR must be the directory that contains the agent socket
+# (default: $XDG_RUNTIME_DIR/xvia). Mount the directory, not the socket file,
+# so that a restarted agent is picked up again.
+
+x-xvia-socket: &xvia-socket
+  type: bind
+  source: ${XVIA_SOCKET_DIR:-${XDG_RUNTIME_DIR:?set XDG_RUNTIME_DIR or XVIA_SOCKET_DIR}/xvia}
+  target: /run/xvia
+  bind:
+    create_host_path: false
+
+services:
+  web:
+    build:
+      context: ../..
+      dockerfile: examples/docker-compose/Dockerfile
+    image: xvia-example:local
+    # The server only listens on the container's loopback interface.
+    command: ["xvia", "python3", "-m", "http.server", "8000", "--bind", "127.0.0.1"]
+    volumes:
+      - *xvia-socket
+    init: true
+
+  api:
+    image: xvia-example:local
+    depends_on: [web]
+    # Started through a shell to show that ports of grandchildren are detected.
+    command: ["xvia", "sh", "-c", "exec devserver --addr 127.0.0.1:8001"]
+    volumes:
+      - *xvia-socket
+    init: true
